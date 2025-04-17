@@ -13,11 +13,19 @@ where poetry >nul 2>nul
 if %errorlevel% neq 0 (
     echo Poetry не найден. Устанавливаю Poetry...
     python -m pip install --user poetry
-    set PATH=%USERPROFILE%\AppData\Roaming\Python\Python39\Scripts;%PATH%
+    REM Добавляем путь к Poetry в PATH (универсально для всех версий Python)
+    set "PATH=%USERPROFILE%\AppData\Roaming\Python\Python*\Scripts;%PATH%"
+    REM Если не сработает, попросите перезапустить консоль или вручную добавить путь
 )
 
 REM Установка зависимостей
 poetry install --no-root
+
+if %errorlevel% neq 0 (
+    echo Ошибка при установке зависимостей!
+    pause
+    exit /b
+)
 
 echo Установка завершена!
 pause 
