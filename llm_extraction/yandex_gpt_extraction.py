@@ -1,21 +1,23 @@
-import os
+import argparse
 import json
+import os
+import pathlib
+import re
+from datetime import datetime
+
 import pandas as pd
 import requests
-import argparse
-import re
 from dotenv import load_dotenv
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill
 from openpyxl.utils.dataframe import dataframe_to_rows
-import pathlib
-from datetime import datetime
 
 load_dotenv(override=True)
 
 YANDEX_API_KEY = os.getenv("YANDEX_API_KEY")
 YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
 YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
+
 
 def get_structured_data(message, msg_id, abbreviations):
     """
@@ -169,57 +171,58 @@ def get_structured_data(message, msg_id, abbreviations):
                         "За день (га)": {"type": "string"},
                         "С начала операции (га)": {"type": "string"},
                         "Вал за день (ц)": {"type": "string"},
-                        "Вал с начала (ц)": {"type": "string"}
+                        "Вал с начала (ц)": {"type": "string"},
                     },
                     "required": [
-                        "Дата", "Подразделение", "Операция", "Культура",
-                        "За день (га)", "С начала операции (га)", "Вал за день (ц)", "Вал с начала (ц)"
+                        "Дата",
+                        "Подразделение",
+                        "Операция",
+                        "Культура",
+                        "За день (га)",
+                        "С начала операции (га)",
+                        "Вал за день (ц)",
+                        "Вал с начала (ц)",
                     ],
-                    "additionalProperties": False
-                }
+                    "additionalProperties": False,
+                },
             }
         },
         "required": ["operations"],
-        "additionalProperties": False
+        "additionalProperties": False,
     }
 
     try:
         headers = {
             "Authorization": f"Api-Key {YANDEX_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         data = {
             "modelUri": f"gpt://{YANDEX_FOLDER_ID}/yandexgpt-lite/rc",
-            "completionOptions": {
-                "temperature": 0.3,
-                "maxTokens": 1500
-            },
+            "completionOptions": {"temperature": 0.3, "maxTokens": 1500},
             "messages": [
-                {
-                    "role": "system",
-                    "text": system_prompt
-                },
-                {
-                    "role": "user",
-                    "text": user_prompt
-                }
+                {"role": "system", "text": system_prompt},
+                {"role": "user", "text": user_prompt},
             ],
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
                     "name": "structured_data",
                     "schema": response_schema,
-                    "strict": True
-                }
-            }
+                    "strict": True,
+                },
+            },
         }
 
         response = requests.post(YANDEX_API_URL, headers=headers, json=data, timeout=30)
         response.raise_for_status()
         result = response.json()
 
-        if "result" not in result or "alternatives" not in result["result"] or not result["result"]["alternatives"]:
+        if (
+            "result" not in result
+            or "alternatives" not in result["result"]
+            or not result["result"]["alternatives"]
+        ):
             return "[]"
 
         text = result["result"]["alternatives"][0]["message"]["text"]
@@ -229,11 +232,11 @@ def get_structured_data(message, msg_id, abbreviations):
         cleaned_text = text.strip()
         if cleaned_text.startswith("```") and cleaned_text.endswith("```"):
             cleaned_text = cleaned_text[3:-3].strip()
-            
-        cleaned_text = re.sub(r'//.*?(?=\n|$)', '', cleaned_text)
+
+        cleaned_text = re.sub(r"//.*?(?=\n|$)", "", cleaned_text)
 
         structured_data = json.loads(cleaned_text)
-        
+
         if isinstance(structured_data, dict):
             return json.dumps(structured_data.get("operations", []), ensure_ascii=False)
         else:
@@ -251,23 +254,38 @@ def get_structured_data(message, msg_id, abbreviations):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Обработка chat_messages.json для извлечения данных о сельхозработах")
-    parser.add_argument('--input', help='Путь к файлу chat_messages.json')
-    parser.add_argument('--abbreviations', help='Путь к файлу с аббревиатурами')
-    parser.add_argument('--output', help='Путь для сохранения Excel файла')
+    parser = argparse.ArgumentParser(
+        description="Обработка chat_messages.json для извлечения данных о сельхозработах"
+    )
+    parser.add_argument("--input", help="Путь к файлу chat_messages.json")
+    parser.add_argument("--abbreviations", help="Путь к файлу с аббревиатурами")
+    parser.add_argument("--output", help="Путь для сохранения Excel файла")
     args = parser.parse_args()
 
     script_path = pathlib.Path(__file__).resolve()
     script_dir = script_path.parent
     data_dir = script_dir.parent / "data"
-    input_path = pathlib.Path(args.input) if args.input else data_dir / "chat_messages.json"
-    abbreviations_path = pathlib.Path(args.abbreviations) if args.abbreviations else data_dir / "abbreviations.json"
-    output_path = pathlib.Path(args.output) if args.output else data_dir / f"{datetime.now().strftime('%d-%m-%Y')}.xlsx"
+    TEAM_NAME = "Немезида"  # Можно вынести в .env или аргумент
+    now = datetime.now()
+    excel_time = now.strftime("%H-%d-%m-%Y")
+    input_path = (
+        pathlib.Path(args.input) if args.input else data_dir / "chat_messages.json"
+    )
+    abbreviations_path = (
+        pathlib.Path(args.abbreviations)
+        if args.abbreviations
+        else data_dir / "abbreviations.json"
+    )
+    output_path = (
+        pathlib.Path(args.output)
+        if args.output
+        else data_dir / f"{excel_time}_{TEAM_NAME}.xlsx"
+    )
 
-    with open(abbreviations_path, 'r', encoding='utf-8') as file:
+    with open(abbreviations_path, "r", encoding="utf-8") as file:
         abbreviations = json.load(file)
 
-    with open(input_path, 'r', encoding='utf-8') as file:
+    with open(input_path, "r", encoding="utf-8") as file:
         messages = json.load(file)
 
     print(f"Извлечено {len(messages)} сообщений")
@@ -276,7 +294,7 @@ def main():
 
     for i, msg in enumerate(messages[:2]):
         msg_id = i + 1
-        msg_text = msg.get("text", "").strip('"') 
+        msg_text = msg.get("text", "").strip('"')
         msg_author = msg.get("author", "")
         msg_date = msg.get("date", "")
 
@@ -287,35 +305,45 @@ def main():
         try:
             structured_data = json.loads(response)
         except json.JSONDecodeError:
-            structured_data = []  
+            structured_data = []
 
         if structured_data:
             df = pd.DataFrame(structured_data)
-            df['msg id'] = msg_id
-            df['msg author'] = msg_author
-            df['msg date'] = msg_date
+            df["msg id"] = msg_id
+            df["msg author"] = msg_author
+            df["msg date"] = msg_date
             all_tables.append(df)
         else:
             empty_row = {
-                'msg id': msg_id,
-                'msg author': msg_author,
-                'msg date': msg_date,
-                'Дата': '',
-                'Подразделение': '',
-                'Операция': '',
-                'Культура': '',
-                'За день (га)': '',
-                'С начала операции (га)': '',
-                'Вал за день (ц)': '',
-                'Вал с начала (ц)': ''
+                "msg id": msg_id,
+                "msg author": msg_author,
+                "msg date": msg_date,
+                "Дата": "",
+                "Подразделение": "",
+                "Операция": "",
+                "Культура": "",
+                "За день (га)": "",
+                "С начала операции (га)": "",
+                "Вал за день (ц)": "",
+                "Вал с начала (ц)": "",
             }
             all_tables.append(pd.DataFrame([empty_row]))
 
     final_df = pd.concat(all_tables, ignore_index=True)
 
-    cols = ["msg id", "msg author", "msg date", "Дата", "Подразделение", 
-            "Операция", "Культура", "За день (га)", "С начала операции (га)", 
-            "Вал за день (ц)", "Вал с начала (ц)"]
+    cols = [
+        "msg id",
+        "msg author",
+        "msg date",
+        "Дата",
+        "Подразделение",
+        "Операция",
+        "Культура",
+        "За день (га)",
+        "С начала операции (га)",
+        "Вал за день (ц)",
+        "Вал с начала (ц)",
+    ]
 
     final_df = final_df[cols]
 
@@ -326,16 +354,19 @@ def main():
     for r in dataframe_to_rows(final_df, index=False, header=True):
         ws.append(r)
 
-    for row in range(2, len(final_df) + 2): 
-        if all(cell.value is None or cell.value == '' for cell in ws[row][3:]): 
+    for row in range(2, len(final_df) + 2):
+        if all(cell.value is None or cell.value == "" for cell in ws[row][3:]):
             for cell in ws[row]:
-                cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+                cell.fill = PatternFill(
+                    start_color="FFFF00", end_color="FFFF00", fill_type="solid"
+                )
 
     wb.save(output_path)
 
     print(f"Данные успешно экспортированы в '{output_path}'")
     print(f"Всего обработано {len(messages)} сообщений")
     print(f"Извлечено {len(final_df)} записей о сельхозработах")
+
 
 if __name__ == "__main__":
     main()

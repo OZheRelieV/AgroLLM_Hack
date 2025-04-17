@@ -27,5 +27,14 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+REM Получаем путь к скрипту активации виртуального окружения Poetry
+for /f "delims=" %%i in ('poetry env activate') do set ACTIVATE_SCRIPT=%%i
+
+REM Выводим путь для проверки
+echo Скрипт активации: %ACTIVATE_SCRIPT%
+
+REM Активируем виртуальное окружение
+call "%ACTIVATE_SCRIPT%"
+
 echo Установка завершена!
 pause 

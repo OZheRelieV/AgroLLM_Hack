@@ -17,14 +17,17 @@ dependencies = [
     "selenium (>=4.31.0,<5.0.0)",
     "streamlit (>=1.44.1,<2.0.0)",
     "webdriver-manager (>=4.0.2,<5.0.0)",
-    "apscheduler (>=3.11.0,<4.0.0)",
     "plotly (>=6.0.1,<7.0.0)",
-    "streamlit-autorefresh (>=1.0.1,<2.0.0)",
-    "psutil (>=7.0.0,<8.0.0)"
+    "docx (>=0.2.4,<0.3.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+isort = "^6.0.1"
+black = "^25.1.0"
+flake8 = "^7.2.0"
 
