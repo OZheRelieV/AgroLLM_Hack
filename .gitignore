@@ -2,3 +2,4 @@
 .DS_Store
 chrome_profile/
 __pycache__
+credentials.json

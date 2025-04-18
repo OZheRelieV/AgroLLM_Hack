@@ -253,14 +253,10 @@ with tabs[3]:
         """
     <h2 style='color:#2E7D32;'>ℹ️ Инструкция для пользователя</h2>
     <ul>
-        <li>Дважды кликните по <b>install.bat</b> — дождитесь завершения установки Python/Poetry/зависимостей.</li>
-        <li>Дважды кликните по <b>start.bat</b> — откроется приложение в браузере.</li>
-        <li>При первом запуске заполните настройки (API-ключи, название чата).</li>
-        <li>Откройте WhatsApp Web и отсканируйте QR-код для доступа к чатам.</li>
-        <li>Все отчёты сохраняются в папку <b>data/</b>.</li>
-        <li>Для автозапуска используйте вкладку <b>Автоматизация</b>.</li>
-        <li>Для работы парсера необходим установленный Google Chrome.</li>
-        <li>Не выключайте компьютер и не закрывайте браузер с WhatsApp Web для корректной работы автозапуска.</li>
+        <li>Перейдите на вкладку <b>📝 Ручной отчёт</b>, выберите дату и нажмите <b>Запустить анализ</b>. После завершения анализа скачайте Excel-файл с результатами.</li>
+        <li>Для автоматического создания отчётов перейдите на вкладку <b>⏰ Автоматизация</b>, выберите время и включите автозапуск.</li>
+        <li>Для просмотра графиков по отчётам используйте вкладку <b>📊 Визуализация</b>.</li>
+        <li>Все отчёты сохраняются в папку <b>data/</b> внутри проекта.</li>
     </ul>
     """,
         unsafe_allow_html=True,
@@ -268,28 +264,34 @@ with tabs[3]:
 
 # --- 5. Настройки ---
 with tabs[4]:
+    load_dotenv(env_path, override=True)
+    chat_name = os.getenv("CHAT_NAME")
+    yandex_key = os.getenv("YANDEX_API_KEY")
+    yandex_folder = os.getenv("YANDEX_FOLDER_ID")
     st.markdown(
         """
     <h2 style='color:#2E7D32;'>⚙️ Настройки</h2>
-    <p>Укажите необходимые параметры для работы приложения.</p>
+    <p>Измените параметры для работы приложения. После сохранения страница обновится автоматически.</p>
     """,
         unsafe_allow_html=True,
     )
-    missing_model_key = not yandex_key
-    missing_chat = not chat_name
-    missing_yandex_folder = not yandex_folder
-    missing = missing_model_key or missing_chat or missing_yandex_folder
-    if missing:
-        yandex_key = st.text_input("Yandex API Key", value=yandex_key or "")
-        chat_name = st.text_input("Название чата WhatsApp", value=chat_name or "")
-        yandex_folder = st.text_input("Yandex Folder ID", value=yandex_folder or "")
-        if st.button("Сохранить настройки", type="primary"):
-            if yandex_key:
-                set_key(str(env_path), "YANDEX_API_KEY", yandex_key)
-            if yandex_folder:
-                set_key(str(env_path), "YANDEX_FOLDER_ID", yandex_folder)
-            set_key(str(env_path), "CHAT_NAME", chat_name)
-            st.success("Настройки сохранены! Перезапустите приложение.")
+    chat_name_new = st.text_input(
+        "Название чата WhatsApp", value=chat_name or "", key="settings_chat_name"
+    )
+    yandex_key_new = st.text_input(
+        "Yandex API Key", value=yandex_key or "", key="settings_yandex_key"
+    )
+    yandex_folder_new = st.text_input(
+        "Yandex Folder ID", value=yandex_folder or "", key="settings_yandex_folder"
+    )
+    if st.button("Сохранить настройки", type="primary"):
+        if not (chat_name_new and yandex_key_new and yandex_folder_new):
+            st.error("Пожалуйста, заполните все поля для сохранения настроек.")
             st.stop()
-    else:
-        st.success("Все необходимые настройки заполнены!")
+        set_key(str(env_path), "CHAT_NAME", chat_name_new)
+        set_key(str(env_path), "YANDEX_API_KEY", yandex_key_new)
+        set_key(str(env_path), "YANDEX_FOLDER_ID", yandex_folder_new)
+        st.success(
+            "Настройки успешно сохранены! Перезагрузите страницу для применения изменений."
+        )
+        st.stop()

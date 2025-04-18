@@ -265,12 +265,17 @@ def main():
     script_path = pathlib.Path(__file__).resolve()
     script_dir = script_path.parent
     data_dir = script_dir.parent / "data"
-    TEAM_NAME = "Немезида"  # Можно вынести в .env или аргумент
+    TEAM_NAME = "Немезида"
     now = datetime.now()
     excel_time = now.strftime("%H-%d-%m-%Y")
-    input_path = (
-        pathlib.Path(args.input) if args.input else data_dir / "chat_messages.json"
-    )
+    input_path = pathlib.Path(args.input) if args.input else None
+    if input_path is None:
+        # Ищем последний chat_messages_дата.json
+        candidates = list(data_dir.glob("chat_messages_*.json"))
+        if candidates:
+            input_path = max(candidates, key=lambda x: x.stat().st_mtime)
+        else:
+            input_path = data_dir / "chat_messages.json"
     abbreviations_path = (
         pathlib.Path(args.abbreviations)
         if args.abbreviations
@@ -292,7 +297,7 @@ def main():
 
     all_tables = []
 
-    for i, msg in enumerate(messages[:2]):
+    for i, msg in enumerate(messages[:10]):
         msg_id = i + 1
         msg_text = msg.get("text", "").strip('"')
         msg_author = msg.get("author", "")
