@@ -20,6 +20,8 @@
 
 Решение возможно запустить как на ОС Windows, так и на macOS / Linux.
 
+![Прогресс Агро](https://github.com/OZheRelieV/AgroLLM_Hack/blob/main/assets/service.png)
+
 ## ⚡Быстрый старт ⚡
 
 ### 🖥 Windows 🖥 
@@ -84,6 +86,7 @@
 │ └─📄 streamlit_app.py  
 ├─📁 assets (папка со статическими элементами)  
 │ └─📄 kandinsky-download-1744821581510.png  
+│ └─📄 service.png  
 ├─📁 data (папка с данными)  
 │ └─📄 abbreviations.json  
 ├─📁 llm_extraction (папка со скриптом экстракции информации из сообщений)  
