@@ -292,6 +292,6 @@ with tabs[4]:
         set_key(str(env_path), "YANDEX_API_KEY", yandex_key_new)
         set_key(str(env_path), "YANDEX_FOLDER_ID", yandex_folder_new)
         st.success(
-            "Настройки успешно сохранены! Перезагрузите страницу для применения изменений."
+            "Настройки успешно сохранены!"
         )
         st.stop()
